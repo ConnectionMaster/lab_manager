@@ -70,6 +70,39 @@ describe Provider::VSphere do
     end
   end
 
+  #only basic checks for now
+  describe '#setup_network_interfaces' do
+    it 'fails when no uuid param is given' do
+      expect do
+        provider.setup_network_interfaces( network_name:'b', connection: 'c')
+      end.to raise_error(Provider::VSphere::SetupNetworkArgumentError)
+    end
+    it 'fails when no network_name is given' do
+      expect do
+        provider.setup_network_interfaces( uuid:'b', connection: 'c')
+      end.to raise_error(Provider::VSphere::SetupNetworkArgumentError)
+    end
+    it 'fails when no connection param is given' do
+      expect do
+        provider.setup_network_interfaces( network_name:'b', uuid: 'c')
+      end.to raise_error(Provider::VSphere::SetupNetworkArgumentError)
+    end
+    it 'fails when no param is given at all' do
+      expect do
+        provider.setup_network_interfaces({})
+      end.to raise_error(Provider::VSphere::SetupNetworkArgumentError)
+    end
+    it 'wont fail when all params are given' do
+      expect do
+        provider.setup_network_interfaces({
+          network_name:'a',
+          uuid: 'b',
+          connection: 'c'
+        })
+      end.not_to raise_error(Provider::VSphere::SetupNetworkArgumentError)
+    end
+  end
+
   describe '#create_vm' do
     it 'arguments are propagated to fog#clone_vm' do
       args = {
@@ -93,6 +126,7 @@ describe Provider::VSphere do
         vm_clone_response
       end
 
+      allow(provider).to receive(:setup_network_interfaces) {}
       allow(provider).to receive(:poweron_vm) {}
       provider.create_vm(args)
     end
@@ -119,6 +153,7 @@ describe Provider::VSphere do
         vm_clone_response
       end
 
+      allow(provider).to receive(:setup_network_interfaces) {}
       allow(provider).to receive(:poweron_vm) {}
       provider.compute.image = nil
       provider.create_vm(args)
@@ -136,6 +171,7 @@ describe Provider::VSphere do
         vm_clone_response
       end
 
+      allow(provider).to receive(:setup_network_interfaces) {}
       allow(provider).to receive(:poweron_vm) {}
       provider.create_vm
     end
@@ -147,6 +183,7 @@ describe Provider::VSphere do
         vm_clone_response
       end
 
+      allow(provider).to receive(:setup_network_interfaces) {}
       allow(provider).to receive(:poweron_vm) {}
       provider.create_vm
     end
@@ -154,6 +191,7 @@ describe Provider::VSphere do
     it 'add_machine_to_drs_rule is called when requested' do
       allow(vsphere_mock).to receive(:vm_clone) { vm_clone_response }
 
+      allow(provider).to receive(:setup_network_interfaces) {}
       allow(provider).to receive(:poweron_vm) {}
       expect(provider).to receive(:add_machine_to_drs_rule_impl) do |_obj, params|
         expect(params[:group]).to eq 'GroupFoo'
@@ -171,6 +209,7 @@ describe Provider::VSphere do
         vm_clone_response.merge('power_state' => 'poweredOff')
       end
 
+      allow(provider).to receive(:setup_network_interfaces) {}
       expect(provider).to receive(:poweron_vm).once
       provider.create_vm
     end
@@ -179,6 +218,7 @@ describe Provider::VSphere do
       allow(vsphere_mock).to receive(:vm_clone) { vm_clone_response }
 
       c = provider.compute
+      allow(provider).to receive(:setup_network_interfaces) {}
       expect(provider).to receive(:poweron_vm).once
       provider.create_vm
       expect(c.provider_data['id']).to eq vm_clone_response['new_vm']['id']
@@ -194,6 +234,7 @@ describe Provider::VSphere do
     it 'calls terminate_vm when VM instance created but setup failed' do
       allow(vsphere_mock).to receive(:vm_clone) { vm_clone_response }
 
+      allow(provider).to receive(:setup_network_interfaces) {}
       allow(provider).to receive(:poweron_vm).and_raise(RbVmomi::Fault.new 'blah blah', 'fooGGG')
       expect(provider).to receive(:terminate_vm).once
       expect { provider.create_vm }.to raise_error('fooGGG')

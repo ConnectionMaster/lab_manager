@@ -116,7 +116,8 @@ module LabManager
               'args',
               'working_dir',
               'user',
-              'password'
+              'password',
+              'async'
             )
           ).to_json
         end

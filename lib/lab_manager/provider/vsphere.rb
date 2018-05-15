@@ -81,6 +81,9 @@ module Provider
     class RebootVmError < RuntimeError
     end
 
+    class SetupNetworkArgumentError < ArgumentError
+    end
+
     attr_accessor :compute
 
     def initialize(compute)
@@ -91,9 +94,45 @@ module Provider
       compute.create_vm_options
     end
 
+    def setup_network_interfaces(opts)
+      fail SetupNetworkArgumentError, "parameter is nil" unless opts
+      %w{uuid network_name connection}.each do |required|
+        fail SetupNetworkArgumentError, "argument #{required} not given " unless opts.key? required.to_sym
+      end
+
+      conn = opts[:connection].instance_variable_get('@connection'.to_sym)
+      vm_mob_ref = conn.searchIndex.FindByUuid({
+        :uuid => opts[:uuid],
+        :vmSearch => true
+      })
+
+      vm_mob_ref.config.hardware.device.select do |vm_device|
+        vm_device.class == RbVmomi::VIM::VirtualE1000 ||
+        vm_device.class == RbVmomi::VIM::VirtualE1000e ||
+        vm_device.class == RbVmomi::VIM::VirtualPCNet32 ||
+        vm_device.class == RbVmomi::VIM::VirtualVmxnet ||
+        vm_device.class == RbVmomi::VIM::VirtualVmxnet2 ||
+        vm_device.class == RbVmomi::VIM::VirtualVmxnet3
+      end.each do |device|
+
+        device.backing = RbVmomi::VIM::VirtualEthernetCardNetworkBackingInfo(
+          :deviceName => opts[:network_name]
+        )
+        config_spec = RbVmomi::VIM.VirtualDeviceConfigSpec(
+          :operation => RbVmomi::VIM::VirtualDeviceConfigSpecOperation('edit'),
+          :device => device
+        )
+        machine_config_spec = RbVmomi::VIM.VirtualMachineConfigSpec(
+          :deviceChange => [config_spec]
+        )
+        vm_mob_ref.ReconfigVM_Task(
+          :spec => machine_config_spec
+        ).wait_for_completion()
+      end
+    end
+
     # TODO: what parameters are mandatory?
     # whould be nice to be able to validate before sending a request
-
     def create_vm(opts = {})
       opts = opts.with_indifferent_access.reverse_merge(
         VSphereConfig.create_vm_defaults.symbolize_keys || {}
@@ -130,6 +169,12 @@ module Provider
             'power_on'      => opts[:power_on],
             'wait'          => true
           )
+
+          setup_network_interfaces({
+            uuid: machine['new_vm']['uuid'],
+            connection: vs,
+            network_name: VSphereConfig.create_vm_defaults[:network_interface_name]
+          })
 
           fail CreateVMError, "Creation of (#{vm_name}) machine failed, retrying" unless machine || machine['vm_ref']
           set_provider_data(machine['new_vm'], vs: vs)

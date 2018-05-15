@@ -24,6 +24,7 @@ development:
     power_on: false #should be set to false when drs rules should be adjusted
     add_to_drs_group: 'your group name'
     vm_clone_retry_count: 5 # because of known VSphere errors
+    network_interface_name: 'some network name'
   <<: *default
 
 test:
