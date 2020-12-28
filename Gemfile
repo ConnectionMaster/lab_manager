@@ -29,7 +29,7 @@ gem 'rack-parser',      '~> 0.6.1', require: 'rack/parser'
 gem 'multi_json',       '~> 1.0'
 
 gem 'retryable',        '~> 2.0.2'
-gem 'puma',             '~> 3.4'
+gem 'puma',             '~> 3.12'
 gem 'carrierwave',      '~> 0.10.0'
 
 group :development do
