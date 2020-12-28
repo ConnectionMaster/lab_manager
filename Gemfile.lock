@@ -206,7 +206,7 @@ GEM
       mini_portile (~> 0.6.0)
     pg (0.18.3)
     puma (3.4.0)
-    rack (1.6.4)
+    rack (1.6.13)
     rack-contrib (1.4.0)
       git-version-bump (~> 0.15)
       rack (~> 1.4)
