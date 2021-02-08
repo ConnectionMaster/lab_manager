@@ -30,7 +30,7 @@ gem 'multi_json',       '~> 1.0'
 
 gem 'retryable',        '~> 2.0.2'
 gem 'puma',             '~> 3.4'
-gem 'carrierwave',      '~> 0.10.0'
+gem 'carrierwave',      '~> 1.3.2'
 
 group :development do
   # just for cmd, e.g.: rails g model, rails c, rails db
